@@ -4,13 +4,22 @@ import './App.css';
 function App() {
   const [movies, setMovies] = useState([]);
   const [newMovie, setNewMovie] = useState('');
+  const [filter, setFilter] = useState(null); 
 
   const handleAddMovie = () => {
     if (newMovie.trim() === '') return;
 
-    const movie = { title: newMovie.trim() };
+    const movie = { title: newMovie.trim(), watched: false };
     setMovies((prevMovies) => [...prevMovies, movie]);
     setNewMovie(''); 
+  };
+
+  const handleToggleWatched = (index) => {
+    setMovies((prevMovies) =>
+      prevMovies.map((movie, i) =>
+        i === index ? { ...movie, watched: !movie.watched } : movie
+      )
+    );
   };
 
   const handleDeleteMovie = (indexToRemove) => {
@@ -19,11 +28,14 @@ function App() {
     );
   };
 
+  const filteredMovies = filter === null
+    ? movies 
+    : movies.filter((movie) => filter === 'watched' ? movie.watched : !movie.watched);
+
   return (
     <div style={{ textAlign: 'center', padding: '20px' }}>
       <h1>User-Added Movie List</h1>
 
-      {}
       <div style={{ marginBottom: '20px' }}>
         <input
           type="text"
@@ -50,10 +62,33 @@ function App() {
         </button>
       </div>
 
-      {}
-      {movies.length > 0 ? (
+      <div style={{ marginBottom: '20px' }}>
+        <button
+          onClick={() => setFilter('watched')}
+          style={{
+            padding: '10px',
+            fontSize: '16px',
+            marginRight: '10px',
+            cursor: 'pointer',
+          }}
+        >
+          Watched
+        </button>
+        <button
+          onClick={() => setFilter('to-watch')}
+          style={{
+            padding: '10px',
+            fontSize: '16px',
+            cursor: 'pointer',
+          }}
+        >
+          To Watch
+        </button>
+      </div>
+
+      {filteredMovies.length > 0 ? (
         <ul style={{ listStyle: 'none', padding: 0 }}>
-          {movies.map((movie, index) => (
+          {filteredMovies.map((movie, index) => (
             <li
               key={index}
               style={{
@@ -64,7 +99,25 @@ function App() {
                 alignItems: 'center',
               }}
             >
-              <span style={{ marginRight: '10px' }}>{movie.title}</span>
+              <span
+                style={{
+                  marginRight: '10px',
+                  textDecoration: movie.watched ? 'line-through' : 'none',
+                }}
+              >
+                {movie.title}
+              </span>
+              <button
+                onClick={() => handleToggleWatched(index)}
+                style={{
+                  padding: '5px 10px',
+                  fontSize: '14px',
+                  marginRight: '10px',
+                  cursor: 'pointer',
+                }}
+              >
+                {movie.watched ? 'Unwatch' : 'Watched'}
+              </button>
               <button
                 onClick={() => handleDeleteMovie(index)}
                 style={{
@@ -82,14 +135,16 @@ function App() {
           ))}
         </ul>
       ) : (
-        <p>No movies added yet.</p>
+        <p>No movies to display.</p>
       )}
     </div>
   );
 }
 
 export default App;
-git add
+
+
+
 
 
 
