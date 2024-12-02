@@ -42,16 +42,15 @@ function App() {
         const movie = {
           title: newMovie.trim(),
           watched: false,
-          details: fetchedDetails, // Store fetched details
+          details: fetchedDetails, 
         };
         setMovies((prevMovies) => [...prevMovies, movie]);
-        setNewMovie(''); // Clear the input field
+        setNewMovie(''); 
       }
     } catch (error) {
       console.error('Error adding movie:', error);
     }
   
-    // Cleanup function
     return () => {
       isMounted = false;
     };
