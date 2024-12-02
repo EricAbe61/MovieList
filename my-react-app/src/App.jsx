@@ -1,36 +1,76 @@
 import React, { useState } from 'react';
 import './App.css';
 
+const TMDB_API_KEY = 'f7c01f56795d06fb509969be8c81b93c'; 
+
 function App() {
   const [movies, setMovies] = useState([]);
   const [newMovie, setNewMovie] = useState('');
-  const [filter, setFilter] = useState(null); 
+  const [selectedMovie, setSelectedMovie] = useState(null); 
 
-  const handleAddMovie = () => {
-    if (newMovie.trim() === '') return;
-
-    const movie = { title: newMovie.trim(), watched: false };
-    setMovies((prevMovies) => [...prevMovies, movie]);
-    setNewMovie(''); 
+  const fetchMovieDetails = async (title) => {
+    try {
+      const response = await fetch(
+        `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}`
+      );
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+  
+      if (data.results && data.results.length > 0) {
+        return data.results[0];
+      }
+  
+      return null; 
+    } catch (error) {
+      console.error('Error fetching movie details:', error);
+      return null; 
+    }
   };
-
-  const handleToggleWatched = (index) => {
+  
+  const handleAddMovie = async () => {
+    let isMounted = true;
+  
+    if (newMovie.trim() === '') return;
+  
+    try {
+      const fetchedDetails = await fetchMovieDetails(newMovie.trim());
+      if (isMounted) {
+        const movie = {
+          title: newMovie.trim(),
+          watched: false,
+          details: fetchedDetails, // Store fetched details
+        };
+        setMovies((prevMovies) => [...prevMovies, movie]);
+        setNewMovie(''); // Clear the input field
+      }
+    } catch (error) {
+      console.error('Error adding movie:', error);
+    }
+  
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  };
+  
+  const handleToggleWatched = (movieIndex) => {
     setMovies((prevMovies) =>
-      prevMovies.map((movie, i) =>
-        i === index ? { ...movie, watched: !movie.watched } : movie
+      prevMovies.map((movie, index) =>
+        index === movieIndex ? { ...movie, watched: !movie.watched } : movie
       )
     );
   };
 
-  const handleDeleteMovie = (indexToRemove) => {
-    setMovies((prevMovies) =>
-      prevMovies.filter((_, index) => index !== indexToRemove)
-    );
+  const handleDeleteMovie = (movieIndex) => {
+    setMovies((prevMovies) => prevMovies.filter((_, index) => index !== movieIndex));
+    if (selectedMovie?.index === movieIndex) {
+      setSelectedMovie(null); 
+    }
   };
-
-  const filteredMovies = filter === null
-    ? movies 
-    : movies.filter((movie) => filter === 'watched' ? movie.watched : !movie.watched);
 
   return (
     <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -62,80 +102,90 @@ function App() {
         </button>
       </div>
 
-      <div style={{ marginBottom: '20px' }}>
-        <button
-          onClick={() => setFilter('watched')}
-          style={{
-            padding: '10px',
-            fontSize: '16px',
-            marginRight: '10px',
-            cursor: 'pointer',
-          }}
-        >
-          Watched
-        </button>
-        <button
-          onClick={() => setFilter('to-watch')}
-          style={{
-            padding: '10px',
-            fontSize: '16px',
-            cursor: 'pointer',
-          }}
-        >
-          To Watch
-        </button>
-      </div>
-
-      {filteredMovies.length > 0 ? (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {filteredMovies.map((movie, index) => (
-            <li
-              key={index}
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        {movies.map((movie, index) => (
+          <li
+            key={index}
+            style={{
+              margin: '10px 0',
+              fontSize: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              width: '60%',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+            }}
+          >
+            <span onClick={() => setSelectedMovie({ ...movie, index })}>
+              {movie.title}
+            </span>
+            <button
+              onClick={() => handleDeleteMovie(index)}
               style={{
-                margin: '10px 0',
-                fontSize: '20px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
+                padding: '5px 10px',
+                fontSize: '14px',
+                color: 'white',
+                backgroundColor: 'red',
+                border: 'none',
+                cursor: 'pointer',
               }}
             >
-              <span
-                style={{
-                  marginRight: '10px',
-                  textDecoration: movie.watched ? 'line-through' : 'none',
-                }}
-              >
-                {movie.title}
-              </span>
-              <button
-                onClick={() => handleToggleWatched(index)}
-                style={{
-                  padding: '5px 10px',
-                  fontSize: '14px',
-                  marginRight: '10px',
-                  cursor: 'pointer',
-                }}
-              >
-                {movie.watched ? 'Unwatch' : 'Watched'}
-              </button>
-              <button
-                onClick={() => handleDeleteMovie(index)}
-                style={{
-                  padding: '5px 10px',
-                  fontSize: '14px',
-                  color: 'white',
-                  backgroundColor: 'red',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p>No movies to display.</p>
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {selectedMovie && (
+        <div
+          style={{
+            padding: '20px',
+            border: '1px solid #ccc',
+            borderRadius: '5px',
+            marginTop: '20px',
+            textAlign: 'left',
+            width: '80%',
+            maxWidth: '500px',
+            margin: '20px auto',
+            backgroundColor: 'black',
+          }}
+        >
+          <h2>{selectedMovie.title}</h2>
+          {selectedMovie.details ? (
+            <>
+              <p><strong>Overview:</strong> {selectedMovie.details.overview}</p>
+              <p><strong>Release Date:</strong> {selectedMovie.details.release_date}</p>
+              <p><strong>Rating:</strong> {selectedMovie.details.vote_average}</p>
+            </>
+          ) : (
+            <p>No additional details available.</p>
+          )}
+          <button
+            onClick={() => handleToggleWatched(selectedMovie.index)}
+            style={{
+              padding: '10px',
+              marginTop: '10px',
+              fontSize: '16px',
+              cursor: 'pointer',
+            }}
+          >
+            {selectedMovie.watched ? 'Unwatch' : 'Watched'}
+          </button>
+          <button
+            onClick={() => setSelectedMovie(null)}
+            style={{
+              padding: '10px',
+              marginTop: '10px',
+              marginLeft: '10px',
+              fontSize: '16px',
+              cursor: 'pointer',
+            }}
+          >
+            Close
+          </button>
+        </div>
       )}
     </div>
   );
